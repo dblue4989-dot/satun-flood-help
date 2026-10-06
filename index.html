@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์ช่วยเหลือผู้ประสบภัยน้ำท่วม และเช็คสถานการณ์น้ำ จ.สตูล</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-teal-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🌊</span>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">ศูนย์ช่วยเหลือผู้ประสบภัย สตูล</h1>
+                    <p class="text-xs text-teal-200">ระบบ Supabase Cloud & LINE Login</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div id="authNavArea"></div>
+                <button onclick="openAdminLogin()" class="bg-teal-800 hover:bg-teal-900 text-white text-xs px-3 py-1.5 rounded-lg border border-teal-600 transition cursor-pointer">
+                    🔐 แอดมิน
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
+
+        <section class="bg-gradient-to-r from-red-600 to-rose-700 rounded-2xl p-6 text-white shadow-lg text-center space-y-3">
+            <h2 class="text-2xl font-bold">🚨 ระบบแจ้งพิกัด SOS & ขาดแคลนอาหาร</h2>
+            <p class="text-sm text-red-100">ระบบความช่วยเหลือฉุกเฉินจังหวัดสตูล เชื่อมต่อฐานข้อมูลคลาวด์</p>
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <button onclick="checkAuthAndOpenSos()" class="bg-white text-red-600 hover:bg-red-50 font-bold px-6 py-2.5 rounded-full shadow-md transition cursor-pointer">
+                    📍 ส่งพิกัดขอความช่วยเหลือ (SOS)
+                </button>
+                <button onclick="checkAuthAndOpenShortage()" class="bg-amber-400 text-slate-900 hover:bg-amber-300 font-bold px-6 py-2.5 rounded-full shadow-md transition cursor-pointer">
+                    📦 แจ้งจุดขาดแคลนอาหาร
+                </button>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <a href="#shortageList" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center hover:shadow-md transition">
+                <div class="text-3xl mb-1">📦</div>
+                <div class="font-semibold text-sm">จุดขาดแคลนอาหาร</div>
+            </a>
+            <a href="#waterstatus" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center hover:shadow-md transition">
+                <div class="text-3xl mb-1">📊</div>
+                <div class="font-semibold text-sm">เช็คสถานการณ์น้ำ</div>
+            </a>
+            <a href="#hotlines" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center hover:shadow-md transition">
+                <div class="text-3xl mb-1">📞</div>
+                <div class="font-semibold text-sm">สายด่วนฉุกเฉิน</div>
+            </a>
+            <a href="#chatSection" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center hover:shadow-md transition">
+                <div class="text-3xl mb-1">💬</div>
+                <div class="font-semibold text-sm">แชทส่งข้อความพิกัด</div>
+            </a>
+        </div>
+
+        <section id="shortageList" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                    <span class="mr-2">📦</span> รายการจุดที่กำลังขาดแคลนอาหารและน้ำดื่ม (คลาวด์ สตูล)
+                </h3>
+                <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full" id="shortageCount">0 จุด</span>
+            </div>
+            <div id="shortageBoardContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </section>
+
+        <section id="waterstatus" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                <span class="mr-2">📊</span> ตรวจสอบระดับน้ำและสถานีเตือนภัย จ.สตูล
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div class="flex justify-between font-bold text-slate-800">
+                        <span>แม่น้ำสตูล (อ.เมืองสตูล)</span>
+                        <span class="text-amber-600">เฝ้าระวัง (+1.20 ม.)</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">มวลน้ำจากตอนบนเริ่มไหลสมทบ ระบายปานกลาง</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div class="flex justify-between font-bold text-slate-800">
+                        <span>คลองละงู (อ.ละงู)</span>
+                        <span class="text-emerald-600">ปกติ</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">ระดับน้ำต่ำกว่าตลิ่ง สามารถสัญจรได้ปกติ</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="hotlines" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                <span class="mr-2">☎️</span> เบอร์โทรสายด่วนฉุกเฉิน (สตูล)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="tel:1784" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center hover:bg-teal-50">
+                    <div>
+                        <div class="font-bold text-teal-700">ปภ. จังหวัดสตูล (1784)</div>
+                        <div class="text-xs text-slate-500">ศูนย์ป้องกันและบรรเทาสาธารณภัย</div>
+                    </div>
+                    <span class="bg-teal-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">โทรออก</span>
+                </a>
+                <a href="tel:1669" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center hover:bg-teal-50">
+                    <div>
+                        <div class="font-bold text-red-600">เจ็บป่วยฉุกเฉิน (1669)</div>
+                        <div class="text-xs text-slate-500">สถาบันการแพทย์ฉุกเฉิน</div>
+                    </div>
+                    <span class="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">โทรออก</span>
+                </a>
+            </div>
+        </section>
+
+        <section id="chatSection" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                <span class="mr-2">💬</span> แชทส่งข้อความพิกัดและความช่วยเหลือ
+            </h3>
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 h-72 overflow-y-auto space-y-3" id="chatBoxContainer"></div>
+            
+            <form onsubmit="sendChatMessage(event)" class="space-y-2">
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="chatInputText" placeholder="พิมพ์ข้อความขอความช่วยเหลือ หรือแจ้งพิกัด..." class="flex-grow px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-teal-600">
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2 rounded-lg text-sm transition">ส่งข้อความ</button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 py-6 mt-12 text-center text-xs">
+        <p>ศูนย์ช่วยเหลือผู้ประสบภัยน้ำท่วม จังหวัดสตูล • Supabase Cloud Backend</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="appNotification" class="fixed top-5 right-5 z-50 transform translate-x-full transition-transform duration-300 max-w-sm w-full bg-slate-900 text-white p-4 rounded-xl shadow-2xl border border-slate-700 flex items-start space-x-3">
+        <span id="notifIcon" class="text-2xl">ℹ️</span>
+        <div class="flex-grow">
+            <h4 id="notifTitle" class="font-bold text-sm">แจ้งเตือนระบบ</h4>
+            <p id="notifMessage" class="text-xs text-slate-300 mt-0.5">รายละเอียด...</p>
+        </div>
+        <button onclick="hideNotification()" class="text-slate-400 hover:text-white text-xs font-bold">✕</button>
+    </div>
+
+    <div id="termsModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-teal-700">📜 เงื่อนไขและนโยบายการใช้งาน</h3>
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 h-40 overflow-y-auto space-y-2">
+                <p><strong>ยินดีต้อนรับสู่ศูนย์ช่วยเหลือผู้ประสบภัย จังหวัดสตูล</strong></p>
+                <p>1. ระบบเชื่อมต่อฐานข้อมูลคลาวด์เพื่อประสานงานความช่วยเหลืออุทกภัย</p>
+                <p>2. ผู้ใช้งานยินยอมให้เข้าถึงตำแหน่ง GPS และยืนยันตัวตนผ่าน LINE</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="acceptTermsCheck" class="w-4 h-4 text-teal-600 rounded">
+                <label for="acceptTermsCheck" class="text-xs font-semibold text-slate-700">ข้าพเจ้าได้อ่านและยอมรับเงื่อนไข</label>
+            </div>
+            <button onclick="submitTerms()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-xl text-sm transition">ยอมรับและดำเนินการต่อ</button>
+        </div>
+    </div>
+
+    <div id="locationModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div class="text-4xl animate-bounce">📍</div>
+            <h3 class="text-xl font-bold text-teal-700">ขอสิทธิ์เข้าถึงพิกัด GPS</h3>
+            <p class="text-xs text-slate-600">จำเป็นต้องทราบพิกัดปัจจุบันเพื่ออำนวยความสะดวกในการช่วยเหลือ</p>
+            <button onclick="requestGpsPermission()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-xl text-sm transition">อนุญาตการเข้าถึงพิกัด</button>
+        </div>
+    </div>
+
+    <div id="lineLoginModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div class="text-3xl">💬</div>
+            <h3 class="text-xl font-bold text-slate-800">เข้าสู่ระบบด้วย LINE</h3>
+            <p class="text-xs text-slate-500">ยืนยันตัวตนผ่านบัญชี LINE ของคุณ</p>
+            <button onclick="openLineAuthScreen()" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 transition shadow-md cursor-pointer">
+                <span class="text-lg font-bold">🟢</span>
+                <span>Login with LINE</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="lineAuthConsentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border-t-8 border-[#06C755]">
+            <div class="w-16 h-16 bg-[#06C755]/10 rounded-full flex items-center justify-center mx-auto text-3xl">🟢</div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">LINE ขออนุญาตเข้าถึง</h3>
+                <p class="text-xs text-slate-500 mt-1">แอปพลิเคชัน <strong>ศูนย์ช่วยเหลือผู้ประสบภัย สตูล</strong></p>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="cancelLineAuth()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-sm">ยกเลิก</button>
+                <button onclick="confirmLineAuth()" class="w-1/2 bg-[#06C755] text-white font-bold py-2.5 rounded-xl text-sm">อนุญาต</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shortageModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-amber-600">📦 แจ้งจุดขาดแคลนอาหารและน้ำดื่ม</h3>
+            <form onsubmit="submitShortageToSupabase(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">สิ่งที่กำลังขาดแคลน</label>
+                    <input type="text" id="shortageItems" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="เช่น ข้าวสาร, น้ำดื่ม">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">จำนวนผู้เดือดร้อน</label>
+                    <input type="text" id="shortagePeople" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="เช่น 15 ครัวเรือน">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">พิกัด GPS</label>
+                    <input type="text" id="shortageGpsInput" readonly required class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อสถานที่ / ตำบล / อำเภอ</label>
+                    <input type="text" id="shortageLocationName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="เช่น ต.พิมาน อ.เมืองสตูล">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeShortageModal()" class="w-1/2 bg-slate-200 py-2 rounded-lg text-sm">ยกเลิก</button>
+                    <button type="submit" class="w-1/2 bg-amber-500 text-slate-900 py-2 rounded-lg text-sm">บันทึกข้อมูลงคลาวด์</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminLoginModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-3">
+            <h3 class="text-lg font-bold text-slate-800">🔐 เข้าสู่ระบบผู้ดูแลระบบ</h3>
+            <form onsubmit="adminLogin(event)" class="space-y-3">
+                <input type="password" id="adminPassword" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="รหัสผ่าน (admin123)">
+                <div class="flex space-x-2">
+                    <button type="button" onclick="closeAdminLogin()" class="w-1/2 bg-slate-200 py-2 rounded-lg text-sm">ยกเลิก</button>
+                    <button type="submit" class="w-1/2 bg-teal-600 text-white py-2 rounded-lg text-sm">เข้าสู่ระบบ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://riziwvtqfcojorwphezk.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_xaMKwEkZsX5letJrecxJ3w_ZGNVDiKO";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = JSON.parse(localStorage.getItem('satun_line_user')) || null;
+        let userGpsCoordinates = "ยังไม่ระบุพิกัด";
+
+        window.onload = function() {
+            checkAppInitializationFlow();
+            fetchShortageFromSupabase();
+            renderChatMessages();
+        };
+
+        function showNotification(title, message, type = 'info') {
+            const banner = document.getElementById('appNotification');
+            document.getElementById('notifTitle').innerText = title;
+            document.getElementById('notifMessage').innerText = message;
+            document.getElementById('notifIcon').innerText = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            banner.classList.remove('translate-x-full');
+            setTimeout(() => { hideNotification(); }, 5000);
+        }
+
+        function hideNotification() {
+            document.getElementById('appNotification').classList.add('translate-x-full');
+        }
+
+        function checkAppInitializationFlow() {
+            if (!localStorage.getItem('satun_accepted_terms')) {
+                document.getElementById('termsModal').classList.remove('hidden');
+                return;
+            }
+            if (!currentUser) {
+                document.getElementById('lineLoginModal').classList.remove('hidden');
+                return;
+            }
+            updateAuthUI();
+        }
+
+        function submitTerms() {
+            if (!document.getElementById('acceptTermsCheck').checked) {
+                showNotification('แจ้งเตือน', 'กรุณากดยอมรับเงื่อนไขก่อน', 'error');
+                return;
+            }
+            localStorage.setItem('satun_accepted_terms', 'true');
+            document.getElementById('termsModal').classList.add('hidden');
+            document.getElementById('locationModal').classList.remove('hidden');
+        }
+
+        function requestGpsPermission() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userGpsCoordinates = `ละติจูด: ${pos.coords.latitude.toFixed(6)}, ลองจิจูด: ${pos.coords.longitude.toFixed(6)}`;
+                        document.getElementById('locationModal').classList.add('hidden');
+                        showNotification('สำเร็จ', 'บันทึกพิกัด GPS เรียบร้อย', 'success');
+                        if (!currentUser) document.getElementById('lineLoginModal').classList.remove('hidden');
+                    },
+                    () => {
+                        userGpsCoordinates = "ไม่พบพิกัด";
+                        document.getElementById('locationModal').classList.add('hidden');
+                        if (!currentUser) document.getElementById('lineLoginModal').classList.remove('hidden');
+                    }
+                );
+            } else {
+                document.getElementById('locationModal').classList.add('hidden');
+                if (!currentUser) document.getElementById('lineLoginModal').classList.remove('hidden');
+            }
+        }
+
+        function openLineAuthScreen() {
+            document.getElementById('lineLoginModal').classList.add('hidden');
+            document.getElementById('lineAuthConsentModal').classList.remove('hidden');
+        }
+        function cancelLineAuth() {
+            document.getElementById('lineAuthConsentModal').classList.add('hidden');
+            document.getElementById('lineLoginModal').classList.remove('hidden');
+        }
+        function confirmLineAuth() {
+            currentUser = { name: "ผู้ใช้งาน LINE (สตูล)", lineId: "line_" + Math.floor(Math.random() * 10000) };
+            localStorage.setItem('satun_line_user', JSON.stringify(currentUser));
+            document.getElementById('lineAuthConsentModal').classList.add('hidden');
+            updateAuthUI();
+            showNotification('สำเร็จ', 'เชื่อมต่อ LINE Login สำเร็จ', 'success');
+        }
+
+        function updateAuthUI() {
+            const container = document.getElementById('authNavArea');
+            if (currentUser) {
+                container.innerHTML = `
+                    <div class="flex items-center space-x-2 bg-teal-800 px-3 py-1 rounded-lg text-xs text-white">
+                        <span>🟢 ${currentUser.name}</span>
+                        <button onclick="logout()" class="text-red-300 font-bold ml-1">ออก</button>
+                    </div>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('satun_line_user');
+            localStorage.removeItem('satun_accepted_terms');
+            location.reload();
+        }
+
+        function checkAuthAndOpenShortage() {
+            if (!currentUser) { document.getElementById('lineLoginModal').classList.remove('hidden'); return; }
+            document.getElementById('shortageGpsInput').value = userGpsCoordinates;
+            document.getElementById('shortageModal').classList.remove('hidden');
+        }
+        function closeShortageModal() { document.getElementById('shortageModal').classList.add('hidden'); }
+
+        function checkAuthAndOpenSos() {
+            if (!currentUser) { document.getElementById('lineLoginModal').classList.remove('hidden'); return; }
+            showNotification('แจ้งเตือน', 'เปิดระบบส่งพิกัด SOS สำเร็จ', 'info');
+        }
+
+        async function submitShortageToSupabase(e) {
+            e.preventDefault();
+            const items = document.getElementById('shortageItems').value;
+            const people = document.getElementById('shortagePeople').value;
+            const gps = document.getElementById('shortageGpsInput').value;
+            const location_name = document.getElementById('shortageLocationName').value;
+            const user_name = currentUser.name;
+
+            const { data, error } = await supabaseClient
+                .from('shortage_reports')
+                .insert([{ user_name, items, people, gps, location_name }]);
+
+            if (error) {
+                showNotification('เกิดข้อผิดพลาด', error.message, 'error');
+            } else {
+                showNotification('สำเร็จ', 'บันทึกข้อมูลลงคลาวด์ Supabase เรียบร้อย', 'success');
+                closeShortageModal();
+                fetchShortageFromSupabase();
+            }
+        }
+
+        async function fetchShortageFromSupabase() {
+            const container = document.getElementById('shortageBoardContainer');
+            const { data, error } = await supabaseClient
+                .from('shortage_reports')
+                .select('*')
+                .order('id', { ascending: false });
+
+            if (error) {
+                container.innerHTML = `<div class="col-span-2 text-center text-red-500 text-xs">ไม่สามารถโหลดข้อมูลจากคลาวด์ได้</div>`;
+                return;
+            }
+
+            document.getElementById('shortageCount').innerText = `${data.length} จุด`;
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-sm">ยังไม่มีรายงานจุดขาดแคลนอาหารบนคลาวด์</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(item => `
+                <div class="p-4 rounded-xl bg-amber-50/50 border border-amber-200 space-y-2 shadow-xs">
+                    <span class="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">ขาดแคลนด่วน</span>
+                    <h4 class="font-bold text-slate-800">📍 ${item.location_name}</h4>
+                    <p class="text-sm text-slate-700 bg-white p-2 rounded border border-amber-100">
+                        <strong>ต้องการ:</strong> ${item.items} (${item.people})
+                    </p>
+                    <div class="flex justify-between text-xs text-slate-500 pt-1">
+                        <span>🛰️ ${item.gps}</span>
+                        <span class="font-semibold text-teal-700">ผู้แจ้ง: ${item.user_name}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            if (!currentUser) { document.getElementById('lineLoginModal').classList.remove('hidden'); return; }
+            const text = document.getElementById('chatInputText').value;
+            const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            const chat = { user: currentUser.name, text, time };
+            let chats = JSON.parse(localStorage.getItem('satun_chat_list')) || [];
+            chats.push(chat);
+            localStorage.setItem('satun_chat_list', JSON.stringify(chats));
+            document.getElementById('chatInputText').value = '';
+            renderChatMessages();
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatBoxContainer');
+            let chats = JSON.parse(localStorage.getItem('satun_chat_list')) || [];
+            if (chats.length === 0) {
+                container.innerHTML = `<div class="text-center text-slate-400 py-12 text-xs">ยังไม่มีข้อความสนทนา</div>`;
+                return;
+            }
+            container.innerHTML = chats.map(c => `
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="font-bold text-teal-700">🟢 ${c.user}</span>
+                        <span class="text-slate-400">${c.time}</span>
+                    </div>
+                    <p class="text-sm text-slate-700">${c.text}</p>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function openAdminLogin() { document.getElementById('adminLoginModal').classList.remove('hidden'); }
+        function closeAdminLogin() { document.getElementById('adminLoginModal').classList.add('hidden'); }
+        function adminLogin(e) {
+            e.preventDefault();
+            if(document.getElementById('adminPassword').value === 'admin123') {
+                showNotification('สำเร็จ', 'เข้าสู่ระบบแอดมินสำเร็จ', 'success');
+                closeAdminLogin();
+            } else {
+                showNotification('ผิดพลาด', 'รหัสผ่านไม่ถูกต้อง', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
